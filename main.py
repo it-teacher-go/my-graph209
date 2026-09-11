@@ -116,7 +116,66 @@ st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 기간 일관�
 st.divider()
 
 # -------------------------------------------------------------------
-# 구역 3: 추후 추가될 그래프 구역
+# 구역 3: 날짜별 10위권 일관객 합계 추이 (영역 그래프)
 # -------------------------------------------------------------------
-st.header("3. 추가 시각화 구역 (준비 중)")
+st.header("3. 날짜별 TOP 10 박스오피스 전체 관객 수 추이")
+
+# 날짜별 일관객 합계 계산
+daily_total = df.groupby('날짜')['일관객'].sum().reset_index().sort_values('날짜')
+
+# 관객 수 합계가 가장 컸던 상위 3개 날짜 추출
+top3_days = daily_total.nlargest(3, '일관객')
+
+# 영역 그래프 생성
+fig3 = px.area(
+    daily_total,
+    x='날짜',
+    y='일관객',
+    title="날짜별 TOP 10 박스오피스 일관객 합계 추이",
+    labels={'날짜': '날짜', '일관객': '총 일관객 수(명)'}
+)
+
+fig3.update_traces(
+    hovertemplate="<b>날짜:</b> %{x|%Y-%m-%d}<br><b>TOP 10 일관객 합계:</b> %{y:,}명<extra></extra>"
+)
+
+# 상위 3일 날짜 및 데이터 주석(Annotation) 추가
+for idx, row in top3_days.iterrows():
+    date_str = row['날짜'].strftime('%Y-%m-%d')
+    audience = row['일관객']
+    fig3.add_annotation(
+        x=row['날짜'],
+        y=audience,
+        text=f"<b>TOP {top3_days.index.get_loc(idx)+1}</b><br>{date_str}<br>({audience:,}명)",
+        showarrow=True,
+        arrowhead=2,
+        arrowsize=1,
+        arrowwidth=2,
+        arrowcolor="red",
+        ax=0,
+        ay=-40,
+        bgcolor="rgba(255, 255, 255, 0.8)",
+        bordercolor="red",
+        borderwidth=1,
+        borderpad=4
+    )
+
+fig3.update_layout(
+    xaxis_title="날짜",
+    yaxis_title="총 관객 수 (명)",
+    hovermode="x unified"
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+
+# 그래프 분석 문구 위치
+top3_dates_text = ", ".join([row['날짜'].strftime('%Y-%m-%d') for _, row in top3_days.iterrows()])
+st.caption(f"💡 **이 그래프로 알 수 있는 것:** 극장가 전체 시장의 흥행 성수기와 비수기 흐름을 파악할 수 있으며, 일관객 합계가 가장 높았던 상위 3일({top3_dates_text})은 명절 연휴나 대형 신작 개봉 주말 등 극장 피크 시즌에 해당합니다.")
+
+st.divider()
+
+# -------------------------------------------------------------------
+# 구역 4: 추후 추가될 그래프 구역
+# -------------------------------------------------------------------
+st.header("4. 추가 시각화 구역 (준비 중)")
 st.text("앞으로 새로운 시간 기반 시각화 그래프가 이 구역에 지속적으로 추가될 예정입니다.")

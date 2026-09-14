@@ -230,8 +230,73 @@ if use_max_cumulative:
     st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 1년 데이터 기간 동안 기록된 최대 누적관객수 기준 상위 10개 영화를 보여줍니다. 이전 연도부터 개봉해 누적 관객을 쌓아온 대형 흥행작의 전체 스케일을 파악하기 적합합니다.")
 else:
     st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 1년 데이터 기간 내에서 순수하게 발생한 일관객의 합계 기준 TOP 10 영화입니다. 이 기간 동안 실제로 극장가에서 가장 많은 관객을 끌어모은 실질적 흥행작을 비교할 수 있습니다.")
+
+st.divider()
+
 # -------------------------------------------------------------------
-# 구역 5: 추후 추가될 그래프 구역
+# 구역 5: 월×요일별 일관객 합계 히트맵
 # -------------------------------------------------------------------
-st.header("5. 추가 시각화 구역 (준비 중)")
+st.header("5. 월×요일별 관객 수 집계 (히트맵)")
+
+# 날짜 데이터에서 월과 요일 추출
+df_heatmap = df.copy()
+df_heatmap['월'] = df_heatmap['날짜'].dt.month.astype(str) + "월"
+df_heatmap['요일'] = df_heatmap['날짜'].dt.day_name()
+
+# 요일 한글 변환 및 정렬 순서 지정 (월요일 ~ 일요일)
+day_map = {
+    'Monday': '월요일',
+    'Tuesday': '화요일',
+    'Wednesday': '수요일',
+    'Thursday': '목요일',
+    'Friday': '금요일',
+    'Saturday': '토요일',
+    'Sunday': '일요일'
+}
+df_heatmap['요일'] = df_heatmap['요일'].map(day_map)
+
+# 월과 요일 정렬 기준 설정
+months_order = [f"{i}월" for i in sorted(df_heatmap['날짜'].dt.month.unique())]
+days_order = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+
+# 월 및 요일별 일관객 합계 피벗 테이블 생성
+pivot_df = df_heatmap.pivot_table(
+    index='월',
+    columns='요일',
+    values='일관객',
+    aggfunc='sum'
+).reindex(index=months_order, columns=days_order).fillna(0)
+
+# 히트맵 생성 (관객 수가 많을수록 진한 색상)
+fig5 = px.imshow(
+    pivot_df,
+    labels=dict(x="요일", y="월", color="총 관객 수(명)"),
+    x=days_order,
+    y=months_order,
+    color_continuous_scale="Reds",
+    title="월×요일별 일관객 합계 히트맵"
+)
+
+# 호버 커스텀 및 텍스트 라이팅
+fig5.update_traces(
+    hovertemplate="<b>월:</b> %{y}<br><b>요일:</b> %{x}<br><b>총 일관객수:</b> %{z:,}명<extra></extra>"
+)
+
+fig5.update_layout(
+    xaxis_title="요일",
+    yaxis_title="월",
+    coloraxis_colorbar=dict(title="총 관객 수")
+)
+
+st.plotly_chart(fig5, use_container_width=True)
+
+# 그래프 분석 문구 위치
+st.caption("💡 **이 그래프로 알 수 있는 것:** 몇 월의 무슨 요일에 극장 관객이 가장 몰리는지 한눈에 파악할 수 있으며, 주말(토/일) 피크 및 특정 달의 명절·휴일 효과가 요일별 관객 수에 어떤 영향을 미쳤는지 직관적으로 비교할 수 있습니다.")
+
+st.divider()
+
+# -------------------------------------------------------------------
+# 구역 6: 추후 추가될 그래프 구역
+# -------------------------------------------------------------------
+st.header("6. 추가 시각화 구역 (준비 중)")
 st.text("앞으로 새로운 시간 기반 시각화 그래프가 이 구역에 지속적으로 추가될 예정입니다.")

@@ -175,37 +175,50 @@ st.caption(f"💡 **이 그래프로 알 수 있는 것:** 극장가 전체 시�
 st.divider()
 
 # -------------------------------------------------------------------
-# 구역 4: 기간 내 총 관객 수 TOP 10 영화 (가로 막대그래프)
+# 구역 4: 기간 내 관객 수 TOP 10 영화 (가로 막대그래프)
 # -------------------------------------------------------------------
-st.header("4. 기간 내 총 관객 수 TOP 10 영화")
+st.header("4. 기간 내 관객 수 TOP 10 영화 비교")
 
-# 영화별 일관객 합계 및 10위권 진입 일수 계산
+# 체크박스를 통해 정렬/추출 기준 선택
+use_max_cumulative = st.checkbox("누적관객수 기준으로 보기 (체크 해제 시 일관객 합계 기준)", value=True)
+
+# 영화별 일관객 합계, 누적관객 최댓값 및 10위권 진입 일수 계산
 top10_summary = df.groupby('영화명').agg(
     총일관객=('일관객', 'sum'),
+    최대누적관객=('누적관객', 'max'),
     차트진입일수=('날짜', 'count')
 ).reset_index()
 
-# 관객 수 기준 상위 10개 영화 선택 및 오름차순 정렬 (Plotly 가로 막대 그래프는 오름차순 정렬 시 최댓값이 제일 위에 나타남)
-top10_movies_df = top10_summary.nlargest(10, '총일관객').sort_values('총일관객', ascending=True)
+if use_max_cumulative:
+    target_col = '최대누적관객'
+    metric_label = '최대 누적관객 수(명)'
+    chart_title = "기간 내 최대 누적관객 수 TOP 10 영화"
+else:
+    target_col = '총일관객'
+    metric_label = '총 일관객 수(명)'
+    chart_title = "기간 내 일관객 합계 TOP 10 영화"
+
+# 관객 수 기준 상위 10개 영화 선택 및 오름차순 정렬 (Plotly 가로 막대는 아래에서 위로 그려짐)
+top10_movies_df = top10_summary.nlargest(10, target_col).sort_values(target_col, ascending=True)
 
 # 가로 막대 그래프 생성
 fig4 = px.bar(
     top10_movies_df,
-    x='총일관객',
+    x=target_col,
     y='영화명',
     orientation='h',
-    title="기간 내 일관객 합계 TOP 10 영화 (10위권 차트인 일수 포함)",
-    labels={'총일관객': '총 일관객 수(명)', '영화명': '영화 제목', '차트진입일수': '10위권 유지 일수'},
-    hover_data={'차트진입일수': True, '총일관객': ':,d'}
+    title=f"{chart_title} (10위권 차트인 일수 포함)",
+    labels={target_col: metric_label, '영화명': '영화 제목', '차트진입일수': '10위권 유지 일수'},
+    hover_data={'차트진입일수': True, target_col: ':,d'}
 )
 
 # 호버 레이아웃 커스텀
 fig4.update_traces(
-    hovertemplate="<b>영화명:</b> %{y}<br><b>총 일관객수:</b> %{x:,}명<br><b>10위권 유지 일수:</b> %{customdata[0]}일<extra></extra>"
+    hovertemplate=f"<b>영화명:</b> %{{y}}<br><b>{metric_label}:</b> %{{x:,}}명<br><b>10위권 유지 일수:</b> %{{customdata[0]}}일<extra></extra>"
 )
 
 fig4.update_layout(
-    xaxis_title="총 관객 수 (명)",
+    xaxis_title=metric_label,
     yaxis_title="영화 제목",
     showlegend=False
 )
@@ -213,10 +226,10 @@ fig4.update_layout(
 st.plotly_chart(fig4, use_container_width=True)
 
 # 그래프 분석 문구 위치
-st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 기간 동안 가장 많은 총 관객 수를 모은 상위 10개 영화의 흥행 스케일과 함께, 각 영화가 박스오피스 10위권 내에서 롱런(장기 상영)한 일수를 비교해볼 수 있습니다.")
-
-st.divider()
-
+if use_max_cumulative:
+    st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 1년 데이터 기간 동안 기록된 최대 누적관객수 기준 상위 10개 영화를 보여줍니다. 이전 연도부터 개봉해 누적 관객을 쌓아온 대형 흥행작의 전체 스케일을 파악하기 적합합니다.")
+else:
+    st.caption("💡 **이 그래프로 알 수 있는 것:** 해당 1년 데이터 기간 내에서 순수하게 발생한 일관객의 합계 기준 TOP 10 영화입니다. 이 기간 동안 실제로 극장가에서 가장 많은 관객을 끌어모은 실질적 흥행작을 비교할 수 있습니다.")
 # -------------------------------------------------------------------
 # 구역 5: 추후 추가될 그래프 구역
 # -------------------------------------------------------------------
